@@ -234,6 +234,51 @@ clock_t test_at(MAP &mp)
     return ELAPSED
 }
 
+int walk_and_get_count(MAP &mp)
+{
+    ITR itr = mp.begin();
+    if(itr == mp.end())
+        return 0;
+
+    int count = 1;
+    int prev = itr->first;
+    for(++itr; itr != mp.end(); ++itr)
+    {
+        count++;
+        assert(prev < itr->first);
+    }
+    return count;
+}
+
+clock_t test_swap(MAP &mp)
+{
+    START
+    MAP tmp;
+    for(int i = 0; i < SIZE / 2; ++i)
+    {
+        tmp.insert(make_pair(g_random[i], g_random[i]));
+    }
+    assert(tmp.size() == SIZE / 2);
+
+    tmp.swap(mp);
+
+    assert(mp.size() == SIZE / 2);
+    assert(tmp.size() == SIZE);
+
+    assert(walk_and_get_count(mp) == mp.size());
+    assert(walk_and_get_count(tmp) == tmp.size());
+
+    mp.swap(tmp);
+
+    assert(mp.size() == SIZE);
+    assert(tmp.size() == SIZE / 2);
+
+    assert(walk_and_get_count(mp) == mp.size());
+    assert(walk_and_get_count(tmp) == tmp.size());
+
+    return ELAPSED
+}
+
 void result(const char *test_case, clock_t (*fn)(MAP&mp), MAP &mp)
 {
 
@@ -258,6 +303,8 @@ int main()
     result("WALK", test_walk, f);
 
     result("REVERSE WALK", test_rev_walk, f);
+
+    result("SWAP", test_swap, f);
 
     result("SEARCH BY KEY", test_search_by_key, f);
 
@@ -288,6 +335,8 @@ int main()
 
     result("ASSIGNED REVERSE WALK", test_rev_walk, f2);
 
+    result("SWAP", test_swap, f2);
+
     result("ASSIGNED SEARCH BY KEY", test_search_by_key, f2);
 
     result("ASSIGNED ERASE BY KEY", test_erase_by_value, f2);
@@ -316,6 +365,8 @@ int main()
     result("COPY CTOR WALK", test_walk, f3);
 
     result("COPY CTOR REVERSE WALK", test_rev_walk, f3);
+
+    result("SWAP", test_swap, f3);
 
     result("COPY CTOR SEARCH BY KEY", test_search_by_key, f3);
 

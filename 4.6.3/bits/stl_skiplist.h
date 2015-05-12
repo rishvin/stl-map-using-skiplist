@@ -512,7 +512,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             while((_p = _RT(_root(), 0)) != _root())
             {
                 _h_del_link(_p, 0);
-                _destroy_node_and_dcr_h_size(_to_link_ptr(_p));
+                _destroy_node_and_dcr_size(_to_link_ptr(_p));
             }
             _h_range_dll_link(_root(), _root(), 0, _max_level);
         }
@@ -591,6 +591,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             _h_set_size(_root(), _max_level);
             _h_range_dll_link(_root(), _root(), 0, _max_level);
             _m_size = 0;
+            srand(time(NULL));
         }
 
         _Node_allocator& _get_Node_allocator()
@@ -618,7 +619,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             _m_impl._Node_allocator::deallocate(_p, 1);
         }
 
-        _Link_ptr _create_node_and_inc_h_size(const _Val& _v, size_type _size)
+        _Link_ptr _create_node_and_inc_size(const _Val& _v, size_type _size)
         {
             _Link_ptr _tmp = _get_node();
             __try
@@ -636,7 +637,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             return _tmp;
         }
 
-        void _destroy_node_and_dcr_h_size(_Link_ptr _p)
+        void _destroy_node_and_dcr_size(_Link_ptr _p)
         {
             _get_allocator().destroy(std::__addressof(_p->_m_value));
             _h_clear(_p);
@@ -649,9 +650,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             return _p == _root();
         }
 
-        size_t _flip_coin()
+        size_type _flip_coin()
         {
-            return (rand() % _max_level) + 1;
+            size_type _h   =    1;
+            size_type _rnd =    rand();
+
+            while(_rnd && (_rnd & 1))
+            {
+                _h++;
+                _rnd >>= 1;
+            }
+            return (_h > _max_level ? _max_level : _h);
         }
 
         _Base_ptr _low_cmp(_Base_ptr _p, size_type _i, const key_type& _k)
@@ -724,21 +733,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             {
                 if(_RT(_p_with, _i) == _p_with)
                 {
-                    for(; (_i < _max_level) && (_RT(_p_this, _i) != _p_this); ++_i)
-                    {
-                        _h_copy_link(_p_with, _p_this, _i);
-                        _h_dll_link(_p_this, _p_this, _i);
-                        _h_assign_inter_link(_p_with, _p_with, _i);
-                    }
+                    std::swap(_p_this, _p_with);
                 }
-                else if(_RT(_p_this, _i) == _p_this)
+
+                for(; (_i < _max_level) && (_RT(_p_this, _i) != _p_this); ++_i)
                 {
-                    for(; (_i < _max_level) && (_RT(_p_with, _i) != _p_with); ++_i)
-                    {
-                        _h_copy_link(_p_this, _p_with, _i);
-                        _h_dll_link(_p_with, _p_with, _i);
-                        _h_assign_inter_link(_p_this, _p_this, _i);
-                    }
+                    _h_copy_link(_p_this, _p_with, _i);
+                    _h_dll_link(_p_this, _p_this, _i);
+                    _h_assign_inter_link(_p_this, _p_this, _i);
                 }
             }
         }
@@ -769,7 +771,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
             }
             else
             {
-                _Link_ptr _p_new = _create_node_and_inc_h_size(_v, _flip_coin());
+                _Link_ptr _p_new = _create_node_and_inc_size(_v, _flip_coin());
                 _h_range_add_link(_slot, _p_new, 0, _h_size(_p_new));
 
                 _first = _p_new;
@@ -814,7 +816,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
                 _ret = _AT(_slot, _i);
             else
             {
-                _Link_ptr _p_new = _create_node_and_inc_h_size(_v, _flip_coin());
+                _Link_ptr _p_new = _create_node_and_inc_size(_v, _flip_coin());
 
                 if(_node_size > _h_size(_p_new))
                     _node_size = _h_size(_p_new);
@@ -842,7 +844,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
             _Link_ptr _p = _to_link_ptr(_to_node(_itr));
             _h_range_del_link(_p, 0, _h_size(_p));
-            _destroy_node_and_dcr_h_size(_p);
+            _destroy_node_and_dcr_size(_p);
             return 1;
         }
 
@@ -850,7 +852,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
         {
             _Link_ptr _p = _to_link_ptr(_to_node(_itr));
             _h_range_del_link(_p, 0, _h_size(_p));
-            _destroy_node_and_dcr_h_size(_p);
+            _destroy_node_and_dcr_size(_p);
         }
 
         iterator _find(const key_type& _k)
