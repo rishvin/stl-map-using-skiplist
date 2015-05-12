@@ -7,8 +7,11 @@
 #include <limits.h>
 using namespace std;
 
+//
 //#define ORG_MAP
 //
+
+
 #ifdef ORG_MAP
 	#include <map>
 	#define MAP map<int, int>
@@ -18,165 +21,324 @@ using namespace std;
 #endif
 
 #define SIZE 10000
+#define LOW 1000
 
 #define ITR MAP::iterator
 #define RITR MAP::reverse_iterator
-void print_msg(const char *msg)
+
+#define START               \
+    clock_t start, end;     \
+	start = clock();
+
+#define ELAPSED     \
+    end = clock();
+
+int g_random[SIZE];
+
+void gen_random()
 {
-	cout << endl << "==================== " << msg << " ====================";
+    int d = 1;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        g_random[i] = LOW + i + d++;
+    }
 }
 
-void print_end()
+clock_t test_insert(MAP &mp)
 {
-    cout << endl << "======================================================" << endl;
-}
-
-void dump(MAP &mp, const char *msg)
-{
-	print_msg(msg);
-	cout << endl << "SIZE = " << mp.size();
-	cout << endl << boolalpha << "EMPTY = " << mp.empty() << endl;
-	int prev = -1;
-	for(ITR itr = mp.begin(); itr != mp.end(); ++itr)
+    START
+    int x;
+    for(int i = 0; i < SIZE; ++i)
 	{
-        assert(prev < itr->first);
-        prev = itr->first;
-        cout << "(" << itr->first << ", " << itr->second << ")";
+		x = g_random[i];
+		mp.insert(make_pair(x, x));
 	}
-	print_end();
+	assert(mp.size() == SIZE);
+	return ELAPSED
+}
+
+clock_t test_walk(MAP &mp)
+{
+    START
+    ITR itr = mp.begin();
+    int prev = itr->first;
+    for(++itr; itr != mp.end(); ++itr)
+    {
+        assert(prev < itr->first);
+    }
+    return ELAPSED
+}
+
+clock_t test_rev_walk(MAP &mp)
+{
+    START
+    RITR itr = mp.rbegin();
+    int prev = itr->first;
+    for(++itr; itr != mp.rend(); ++itr)
+    {
+        assert(prev > itr->first);
+    }
+    return ELAPSED
+}
+
+
+clock_t test_search_by_key(MAP &mp)
+{
+    START
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        itr = mp.find(g_random[i]);
+        assert(itr != mp.end());
+    }
+    return ELAPSED
+}
+
+clock_t test_assign(MAP &mp, MAP &mp2)
+{
+    START
+    mp2 = mp;
+    return ELAPSED
+}
+
+clock_t test_lower_bound(MAP &mp)
+{
+    START
+    ITR itr, itr2;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        itr = mp.lower_bound(LOW + i);
+        itr2 = mp.find(LOW + i);
+        if(itr2 != mp.end())
+            assert(itr->first == (LOW + i));
+        else if(itr != mp.end())
+            assert(itr->first > (LOW + i));
+    }
+    return ELAPSED
+}
+
+clock_t test_upper_bound(MAP &mp)
+{
+    START
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        itr = mp.upper_bound(LOW + i);
+        if(itr != mp.end())
+            assert(itr->first > (LOW + i));
+    }
+    return ELAPSED
+}
+
+
+clock_t test_erase_by_value(MAP &mp)
+{
+    START
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        assert(mp.erase(g_random[i]) == 1);
+        itr = mp.find(g_random[i]);
+        assert(itr == mp.end());
+    }
+    assert(mp.size() == 0);
+    assert(mp.empty() == true);
+    return ELAPSED
+}
+
+clock_t test_erase_by_hint(MAP &mp)
+{
+    START
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        itr = mp.find(g_random[i]);
+        assert(itr != mp.end());
+        mp.erase(itr);
+        itr = mp.find(g_random[i]);
+        assert(itr == mp.end());
+    }
+    assert(mp.size() == 0);
+    assert(mp.empty() == true);
+    return ELAPSED
+}
+
+clock_t test_clear(MAP &mp)
+{
+    START
+    mp.clear();
+    assert(mp.empty() == true);
+    assert(mp.size() == 0);
+    return ELAPSED
+}
+
+clock_t test_range_insert(MAP &mp)
+{
+    START
+    MAP tmp;
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        itr = mp.find(i + 4 * SIZE);
+        assert(itr == mp.end());
+        tmp.insert(make_pair((i + 4 * SIZE), (i + 4 * SIZE)));
+    }
+    mp.insert(tmp.begin(), tmp.end());
+    assert(mp.size() == SIZE + SIZE);
+
+    itr = mp.find(0 + 4 * SIZE);
+
+    mp.erase(itr, mp.end());
+    assert(mp.size() == SIZE);
+    return ELAPSED
+}
+
+clock_t test_operator_insert(MAP &mp)
+{
+    START
+    MAP tmp;
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        itr = mp.find(i + 4 * SIZE);
+        assert(mp[i + 4 * SIZE] == 0);
+        mp[i + 4 * SIZE] = i + 4 * SIZE;
+        itr = mp.find(i + 4 * SIZE);
+        assert(mp[i + 4 * SIZE] != 0);
+    }
+
+    assert(mp.size() == SIZE + SIZE);
+    itr = mp.find(0 + 4 * SIZE);
+
+    mp.erase(itr, mp.end());
+    assert(mp.size() == SIZE);
+    return ELAPSED
+}
+
+clock_t test_at(MAP &mp)
+{
+    START
+    MAP tmp;
+    ITR itr;
+    for(int i = 0; i < SIZE; ++i)
+    {
+        try
+        {
+            mp.at(g_random[i]);
+        }
+        catch(...)
+        {
+            assert(false);
+        }
+    }
+    return ELAPSED
+}
+
+void result(const char *test_case, clock_t (*fn)(MAP&mp), MAP &mp)
+{
+
+    clock_t t = fn(mp);
+    cout << endl << "["<< test_case << "]";
+    cout << endl << "Tick elapsed = " << t;
+    cout << endl << "[DONE]" << endl;
 }
 
 int main()
 {
+	srand(time(NULL));
+    gen_random();
+    cout << endl << "#### TESTING STL SKIPLIST MAP ####" << endl;
+
+    clock_t t;
 
     MAP f;
 
-	clock_t start, end;
-	double cpu_time_used;
+    result("INSERT", test_insert, f);
 
-	srand(time(NULL));
+    result("WALK", test_walk, f);
 
-	start = clock();
+    result("REVERSE WALK", test_rev_walk, f);
 
-	for(int i = 0; i < SIZE; ++i)
-	{
-		int x = i;//rand() % 100000;
-		f.insert(make_pair(x + 1, x + 1));
-	}
+    result("SEARCH BY KEY", test_search_by_key, f);
 
-	dump(f, "DUMPING");
-	/* =============================================== */
+    result("ERASE BY KEY", test_erase_by_value, f);
+    test_insert(f);
 
+    result("ERASE BY HINT", test_erase_by_hint, f);
+    test_insert(f);
 
+    result("LOWER BOUND", test_lower_bound, f);
 
-	f[6] = 7;
-	dump(f, "DUMPING AFTER APPLYING [49] = 50 OPERATOR");
-	f[49] = 50;
-	dump(f, "DUMPING AFTER APPLYING [] OPERATOR");
-	/* =============================================== */
+    result("UPPER BOUND", test_upper_bound, f);
 
+    result("RANGE INSERT", test_range_insert, f);
 
+    result("OPERATOR [] INSERT", test_operator_insert, f);
 
-	f.erase(7);
-	f.erase(5);
-	f.erase(90);
+    result("AT", test_at, f);
 
-	ITR itr = f.find(SIZE + 2);
-	//assert(itr == f.end());
-
-	itr = f.find(4);
-	//assert(itr != f.end());
-	f.erase(itr);
-
-	dump(f, "DUMPING AFTER ERASE");
-	/* =============================================== */
+    result("CLEAR", test_clear, f);
+    test_insert(f);
 
 
+    MAP f2;
+    f2 = f;
 
-	print_msg("DUMPING BOUNDS");
-	int bound_value = 89;
-    itr = f.lower_bound(bound_value);
-	if(itr != f.end())
-		cout << endl << "LOWER BOUND OF " << bound_value << " = " << itr->first;
-	else cout << endl << "LOWER BOUND NOT FOUND FOR "  << bound_value;
+    result("ASSIGNED WALK", test_walk, f2);
 
-	itr = f.upper_bound(bound_value);
-	if(itr != f.end())
-		cout << endl << "UPPER BOUND OF " << bound_value << " = " << itr->first;
-	else  cout << endl << "UPPER BOUND NOT FOUND FOR " << bound_value;
-	print_end();
-	/* =============================================== */
+    result("ASSIGNED REVERSE WALK", test_rev_walk, f2);
 
+    result("ASSIGNED SEARCH BY KEY", test_search_by_key, f2);
 
-	itr = f.find(10);
-	f.insert(itr, make_pair(40, 15));
+    result("ASSIGNED ERASE BY KEY", test_erase_by_value, f2);
+    test_insert(f2);
 
-    dump(f, "After inserting hint = 10, 40");
+    result("ASSIGNED ERASE BY HINT", test_erase_by_hint, f2);
+    test_insert(f2);
 
-	itr = f.find(56);
-	f.insert(itr, make_pair(199, 45));
+    result("ASSIGNED LOWER BOUND", test_lower_bound, f2);
 
-    dump(f, "After inserting hint = 56, 199");
+    result("ASSIGNED UPPER BOUND", test_upper_bound, f2);
 
-	itr = f.find(4);
-	f.insert(itr, make_pair(500, 34));
+    result("RANGE INSERT", test_range_insert, f2);
 
-	dump(f, "After inserting hint = 4, 500");
+    result("OPERATOR [] INSERT", test_operator_insert, f2);
 
-	itr = f.find(199);
-	f.insert(itr, make_pair(5, 5));
+    result("AT", test_at, f2);
 
-	itr = f.find(900);
-	f.insert(itr, make_pair(13, 13));
-
-	itr = f.find(6);
-	f.insert(itr, make_pair(15, 15));
-
-	dump(f, "DUMPING AFTER HINT INSERTION");
-	/* =============================================== */
-
-
-	MAP f1;
-	f1.insert(f.begin(), f.end());
-
-	dump(f1, "DUMPING AFTER RANGE INSERT");
-	/* =============================================== */
-
-
-	f1 = f;
-
-	dump(f1, "DUMPING AFTER ASSIGNMENT");
-	/* =============================================== */
+    result("CLEAR", test_clear, f2);
+    test_insert(f2);
 
 
 
-	MAP f2(f);
+    MAP f3(f2);
 
-	dump(f2, "DUMPING WITH COPY CTOR");
-	/* =============================================== */
+    result("COPY CTOR WALK", test_walk, f3);
 
-	f2.clear();
-	dump(f2, "DUMPING AFTER CLEAR");
+    result("COPY CTOR REVERSE WALK", test_rev_walk, f3);
 
-	f2[10] = 12;
-	dump(f2, "DUMPING AFTER INSERT");
-    /* =============================================== */
+    result("COPY CTOR SEARCH BY KEY", test_search_by_key, f3);
 
-    f.swap(f2);
-    dump(f, "DUMPING f AFTER SWAP WITH f2");
-    dump(f2, "DUMPING f2 AFTER SWAP WITH f");
-    /* =============================================== */
+    result("COPY CTOR ERASE BY KEY", test_erase_by_value, f3);
+    test_insert(f3);
 
+    result("COPY CTOR ERASE BY HINT", test_erase_by_hint, f3);
+    test_insert(f3);
 
-    itr = f.find(20);
-    ITR itr2 = f.find(90);
-    f.erase(itr, itr2);
-    dump(f, "DUMPING f AFTER RANGE ERASE");
+    result("COPY CTOR LOWER BOUND", test_lower_bound, f3);
 
+    result("COPY CTOR UPPER BOUND", test_upper_bound, f3);
 
-	end = clock();
-	cout << endl << endl << "-----------------";
-	cout << endl << "TICKS ELAPSED = " << (end - start) << endl;
+    result("COPY CTOR RANGE INSERT", test_range_insert, f3);
 
+    result("OPERATOR [] INSERT", test_operator_insert, f3);
+
+    result("AT", test_at, f3);
+
+    result("COPY CTOR CLEAR", test_clear, f3);
+    test_insert(f3);
+
+    cout << endl << "#### TESTING STL SKIPLIST MAP DONE####" << endl;
+    cout << endl;
 	return 0;
 }
